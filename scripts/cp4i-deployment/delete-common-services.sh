@@ -118,7 +118,7 @@ title "Deleting other OperandRequest from all namespaces..."
 oc delete OperandRequest --all --ignore-not-found 2>/dev/null &
 wait_for_deleted OperandRequest "--all-namespaces" 1
 title "Deleting ODLM sub and csv"
-delete_sub_csv "operand-deployment-lifecycle-manager-app" "openshift-operators"
+delete_sub_csv "operand-deployment-lifecycle-manager-app" "ibm-common-services"
 title "Deleting RBAC resource"
 oc delete ClusterRole ibm-common-service-webhook --ignore-not-found
 oc delete ClusterRoleBinding ibm-common-service-webhook --ignore-not-found

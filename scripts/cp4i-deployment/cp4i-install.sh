@@ -513,7 +513,7 @@ echo "INFO: Applying individual subscriptions for cp4i dependencies"
 create_subscription ${namespace} "opencloud-operators" "ibm-common-service-operator" "stable-v1"
 
 # wait for the Operand Deployment Lifecycle Manager to be installed
-wait_for_subscription openshift-operators operand-deployment-lifecycle-manager-app
+wait_for_subscription ibm-common-services operand-deployment-lifecycle-manager-app
 if [[ $? != 0 ]]
   then
     retry true
