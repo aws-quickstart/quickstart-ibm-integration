@@ -29,6 +29,7 @@
 :template_cleanup:
 :template_cloudformation:
 :template_custom_cleanup:
+:template_deterministic_ec2_instances:
 :template_ec2:
 :template_iam:
 :template_lambda:
