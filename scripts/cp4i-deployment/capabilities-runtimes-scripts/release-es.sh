@@ -23,8 +23,8 @@
 #   Overriding the namespace and release-name
 #     ./release-es.sh -n cp4i-prod -r prod
 
-function usage {
-    echo "Usage: $0 -n <namespace> -r <release-name>"
+function usage() {
+  echo "Usage: $0 -n <namespace> -r <release-name>"
 }
 
 namespace="cp4i"
@@ -34,32 +34,48 @@ storageClass=""
 
 while getopts "n:r:pc:" opt; do
   case ${opt} in
-    n ) namespace="$OPTARG"
-      ;;
-    r ) release_name="$OPTARG"
-      ;;
-    p ) production="true"
-      ;;
-    c ) storageClass="$OPTARG"
-      ;;
-    \? ) usage; exit
-      ;;
+  n)
+    namespace="$OPTARG"
+    ;;
+  r)
+    release_name="$OPTARG"
+    ;;
+  p)
+    production="true"
+    ;;
+  c)
+    storageClass="$OPTARG"
+    ;;
+  \?)
+    usage
+    exit
+    ;;
   esac
 done
 
+json=$(oc get configmap -n $namespace operator-info -o json 2> /dev/null)
+if [[ $? == 0 ]]; then
+  METADATA_NAME=$(echo $json | tr '\r\n' ' ' | jq -r '.data.METADATA_NAME')
+  METADATA_UID=$(echo $json | tr '\r\n' ' ' | jq -r '.data.METADATA_UID')
+fi
 
-
-if [ "$production" == "true" ]
-then
-echo "Production Mode Enabled"
-cat << EOF | oc apply -f -
+if [ "$production" == "true" ]; then
+  echo "Production Mode Enabled"
+  cat <<EOF | oc apply -f -
 apiVersion: eventstreams.ibm.com/v1beta1
 kind: EventStreams
 metadata:
   name: ${release_name}
   namespace: ${namespace}
+  $(if [[ ! -z ${METADATA_UID} && ! -z ${METADATA_NAME} ]]; then
+  echo "ownerReferences:
+    - apiVersion: integration.ibm.com/v1beta1
+      kind: Demo
+      name: ${METADATA_NAME}
+      uid: ${METADATA_UID}"
+  fi)
 spec:
-  version: 10.1.0
+  version: 10.2.0-eus
   license:
     accept: true
     use: CloudPakForIntegrationProduction
@@ -103,15 +119,22 @@ spec:
         size: 2Gi
         type: persistent-claim
 EOF
-else 
-cat << EOF | oc apply -f -
+else
+  cat <<EOF | oc apply -f -
 apiVersion: eventstreams.ibm.com/v1beta1
 kind: EventStreams
 metadata:
   name: ${release_name}
   namespace: ${namespace}
+  $(if [[ ! -z ${METADATA_UID} && ! -z ${METADATA_NAME} ]]; then
+  echo "ownerReferences:
+    - apiVersion: integration.ibm.com/v1beta1
+      kind: Demo
+      name: ${METADATA_NAME}
+      uid: ${METADATA_UID}"
+  fi)
 spec:
-  version: 10.1.0
+  version: 10.2.0-eus
   license:
     accept: true
     use: CloudPakForIntegrationNonProduction

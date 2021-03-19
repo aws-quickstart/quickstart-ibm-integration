@@ -20,6 +20,7 @@ tests:
       KeyPairName: override
       NumberOfMaster: '3'
       NumberOfCompute: '3'
+      ComputeInstanceType: 'm5.12xlarge'
       ClusterName: cp4i-$[taskcat_random-string]
       RedhatPullSecret: override
       APIKey: override
@@ -27,6 +28,13 @@ tests:
       LicenseAgreement: I agree
       Namespace: integration
       APILM: 'True'
+      AIDB: 'True'
+      AIDE: 'True'
+      OD: 'True'
+      AR: 'True'
+      MQ: 'True'
+      ES: 'True'
+      GW: 'True'
       QSS3BucketName: $[taskcat_autobucket]
       QSS3BucketRegion: $[taskcat_current_region]
       QSS3KeyPrefix: quickstart-ibm-integration/

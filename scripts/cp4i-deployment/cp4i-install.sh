@@ -341,7 +341,7 @@ spec:
     accept: true
   mqDashboard: true
   replicas: ${platformNavigatorReplicas}
-  version: 2020.3.1
+  version: "2020.4.1-eus"
 EOF
 
   do
@@ -521,18 +521,18 @@ fi
 
 # install all the operators one by one
 echo "INFO: Installing CP4I operators..."
-create_subscription ${namespace} "certified-operators" "couchdb-operator-certified" "stable"
+create_subscription ${namespace} "certified-operators" "couchdb-operator-certified" "v1.4"
 create_subscription ${namespace} "ibm-operator-catalog" "ibm-cloud-databases-redis-operator" "v1.1"
-create_subscription ${namespace} "ibm-operator-catalog" "aspera-hsts-operator" "v1.1"
-create_subscription ${namespace} "ibm-operator-catalog" "datapower-operator" "v1.1"
-create_subscription ${namespace} "ibm-operator-catalog" "ibm-appconnect" "v1.0"
-create_subscription ${namespace} "ibm-operator-catalog" "ibm-eventstreams" "v2.1"
-create_subscription ${namespace} "ibm-operator-catalog" "ibm-mq" "v1.1"
-create_subscription ${namespace} "ibm-operator-catalog" "ibm-integration-asset-repository" "v1.0"
+create_subscription ${namespace} "ibm-operator-catalog" "aspera-hsts-operator" "v1.2-eus"
+create_subscription ${namespace} "ibm-operator-catalog" "datapower-operator" "v1.2-eus"
+create_subscription ${namespace} "ibm-operator-catalog" "ibm-appconnect" "v1.1-eus"
+create_subscription ${namespace} "ibm-operator-catalog" "ibm-eventstreams" "v2.2-eus"
+create_subscription ${namespace} "ibm-operator-catalog" "ibm-mq" "v1.3-eus"
+create_subscription ${namespace} "ibm-operator-catalog" "ibm-integration-asset-repository" "v1.1-eus"
 # Apply the subscription for navigator. This needs to be before apic so apic knows it's running in cp4i
-create_subscription ${namespace} "ibm-operator-catalog" "ibm-integration-platform-navigator" "v4.0"
-create_subscription ${namespace} "ibm-operator-catalog" "ibm-apiconnect" "v2.0"
-create_subscription ${namespace} "ibm-operator-catalog" "ibm-integration-operations-dashboard" "v2.0"
+create_subscription ${namespace} "ibm-operator-catalog" "ibm-integration-platform-navigator" "v4.1-eus"
+create_subscription ${namespace} "ibm-operator-catalog" "ibm-apiconnect" "v2.1-eus"
+create_subscription ${namespace} "ibm-operator-catalog" "ibm-integration-operations-dashboard" "v2.1-eus"
 
 # Wait for the OperandConfig to appear in the common services namespace
 time=0

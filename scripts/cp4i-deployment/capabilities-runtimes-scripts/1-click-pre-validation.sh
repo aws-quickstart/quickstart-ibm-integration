@@ -17,22 +17,23 @@
 #   -r : <navReplicaCount> (string), Platform navigator replica count, Defaults to "3"
 #   -u : <csDefaultAdminUser> (string), Common services default admin username, Defaults to "admin"
 #   -d : <demoPreparation> (string), If all demos are to be setup. Defaults to "false"
+#   -n : <namespace> (string), Namespace for the 1-click validation. Defaults to "cp4i"
 #
 # USAGE:
 #   With defaults values
 #     ./1-click-pre-validation.sh -p <csDefaultAdminPassword>
 #
 #   Overriding the namespace and release-name
-#     ./1-click-pre-validation.sh -p <csDefaultAdminPassword> -r <navReplicaCount> -u <csDefaultAdminUser> -d <demoPreparation>
+#     ./1-click-pre-validation.sh -n <namespace> -p <csDefaultAdminPassword> -r <navReplicaCount> -u <csDefaultAdminUser> -d <demoPreparation>
 
-function divider {
-    echo -e "\n-------------------------------------------------------------------------------------------------------------------\n"
+function divider() {
+  echo -e "\n-------------------------------------------------------------------------------------------------------------------\n"
 }
 
-function usage {
-    echo "Usage: $0 -n <NAMESPACE> -p <csDefaultAdminPassword> -r <navReplicaCount> -u <csDefaultAdminUser> -d <demoPreparation>"
-    divider
-    exit 1
+function usage() {
+  echo "Usage: $0 -n <namespace> -p <csDefaultAdminPassword> -r <navReplicaCount> -u <csDefaultAdminUser> -d <demoPreparation>"
+  divider
+  exit 1
 }
 
 navReplicaCount="3"
@@ -44,42 +45,53 @@ cross="\xE2\x9D\x8C"
 all_done="\xF0\x9F\x92\xAF"
 info="\xE2\x84\xB9"
 missingParams="false"
-namespace=""
+namespace="cp4i"
 
 while getopts "p:r:u:d:n:" opt; do
   case ${opt} in
-    n ) namespace="$OPTARG"
-      ;;
-    p ) csDefaultAdminPassword="$OPTARG"
-      ;;
-    r ) navReplicaCount="$OPTARG"
-      ;;
-    u ) csDefaultAdminUser="$OPTARG"
-      ;;
-    d ) demoPreparation="$OPTARG"
-      ;;
-    \? ) usage;
-      ;;
+  n)
+    namespace="$OPTARG"
+    ;;
+  p)
+    csDefaultAdminPassword="$OPTARG"
+    ;;
+  r)
+    navReplicaCount="$OPTARG"
+    ;;
+  u)
+    csDefaultAdminUser="$OPTARG"
+    ;;
+  d)
+    demoPreparation="$OPTARG"
+    ;;
+  \?)
+    usage
+    ;;
   esac
 done
 
-if [[ -z "${csDefaultAdminPassword// }" ]]; then
-  echo -e "$cross ERROR: Default admin password is empty. Please provide a value for '-p' parameter."
+if [[ -z "${csDefaultAdminPassword// /}" ]]; then
+  echo -e "$cross ERROR: 1-click validation default admin password is empty. Please provide a value for '-p' parameter."
   missingParams="true"
 fi
 
-if [[ -z "${navReplicaCount// }" ]]; then
-  echo -e "$cross ERROR: Platform navigator replica count is empty. Please provide a value for '-r' parameter."
+if [[ -z "${namespace// /}" ]]; then
+  echo -e "$cross ERROR: 1-click validation namespace is empty. Please provide a value for '-n' parameter."
   missingParams="true"
 fi
 
-if [[ -z "${csDefaultAdminUser// }" ]]; then
-  echo -e "$cross ERROR: Default admin username is empty. Please provide a value for '-u' parameter."
+if [[ -z "${navReplicaCount// /}" ]]; then
+  echo -e "$cross ERROR: 1-click validation platform navigator replica count is empty. Please provide a value for '-r' parameter."
   missingParams="true"
 fi
 
-if [[ -z "${demoPreparation// }" ]]; then
-  echo -e "$cross ERROR: Demo preparation parameter is empty. Please provide a value for '-d' parameter."
+if [[ -z "${csDefaultAdminUser// /}" ]]; then
+  echo -e "$cross ERROR: 1-click validation default admin username is empty. Please provide a value for '-u' parameter."
+  missingParams="true"
+fi
+
+if [[ -z "${demoPreparation// /}" ]]; then
+  echo -e "$cross ERROR: 1-click validation demo preparation parameter is empty. Please provide a value for '-d' parameter."
   missingParams="true"
 fi
 
@@ -108,7 +120,7 @@ total_mem_gi=0.0
 if [[ "${demoPreparation}" == "true" ]]; then
   for row in $(oc get node -o json | jq -r '.items[] | { name: .metadata.name, cpu: .status.allocatable.cpu, mem: .status.allocatable.memory } | @base64'); do
     _jq() {
-     echo ${row} | base64 --decode | jq -r ${1}
+      echo ${row} | base64 --decode | jq -r ${1}
     }
     _cpu() {
       if [[ "$1" == "null" ]]; then
@@ -165,9 +177,16 @@ if [[ "${demoPreparation}" == "true" ]]; then
     printf "$cross ERROR: You have %0.1f GiB of allocatable memory. Minimum memory requirement for ${demo_products} is %0.1f GiB\n" $total_mem_gi $mem_req_gi
     check=1
   else
-    echo -e "$tick INFO: You have enough allocatable cpu for the demo"
+    echo -e "$tick INFO: You have enough allocatable memory for the demo"
   fi
 fi #demoPreparation
+
+if [[ $(oc get node -o json | jq -r '.items[].metadata.labels["ibm-cloud.kubernetes.io/zone"]' | uniq | wc -l | xargs) != 1 ]]; then
+  echo -e "$cross ERROR: MRZ clusters are not supported, please try again with a cluster with all nodes in a single zone"
+  check=1
+else
+  echo -e "$tick INFO: Cluster nodes are all in a single zone"
+fi
 
 if [[ ! -z $namespace ]] && [[ "${demoPreparation}" == "true" ]]; then
   if [ "${#namespace}" -gt 9 ]; then
@@ -186,7 +205,7 @@ else
 fi
 
 export csDefaultAdminUserRegex='^[a-zA-Z]+$'
-if ! [[ "$csDefaultAdminUser" =~ $csDefaultAdminUserRegex   ]]; then
+if ! [[ "$csDefaultAdminUser" =~ $csDefaultAdminUserRegex ]]; then
   echo -e "$cross ERROR: Common Services admin username can contain only letters"
   check=1
 else

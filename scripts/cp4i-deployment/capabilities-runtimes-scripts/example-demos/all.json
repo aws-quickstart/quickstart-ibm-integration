@@ -1,0 +1,24 @@
+{
+  "apiVersion": "integration.ibm.com/v1beta1",
+  "kind": "Demo",
+  "metadata": {
+    "name": "demos",
+    "namespace": "cp4i"
+  },
+  "spec": {
+    "demos": {
+      "all": "true"
+    }
+  },
+  "general": {
+    "samplesRepoBranch": "main",
+    "storage": {
+      "block": {
+        "class": "cp4i-block-performance"
+      },
+      "file": {
+        "class": "ibmc-file-gold-gid"
+      }
+    }
+  }
+}

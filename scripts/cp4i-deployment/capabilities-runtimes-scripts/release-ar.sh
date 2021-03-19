@@ -21,46 +21,66 @@
 #     ./release-ar.sh
 #
 #   Overriding the namespace and release-name
-#     ./release-ar -n cp4i-prod -r prod
+#     ./release-ar.sh -n cp4i-prod -r prod
 
-function usage {
-    echo "Usage: $0 -n <namespace> -r <release-name>"
+function usage() {
+  echo "Usage: $0 -n <namespace> -r <release-name> -a <assets storage class (file)> -c <couch storage class (block)>"
 }
 
 namespace="cp4i"
 release_name="demo"
 assetDataVolume="ibmc-file-gold-gid"
-couchVolume="ibmc-block-gold"
-
+couchVolume="cp4i-block-performance"
 
 while getopts "n:r:a:c:" opt; do
   case ${opt} in
-    n ) namespace="$OPTARG"
-      ;;
-    r ) release_name="$OPTARG"
-      ;;
-    a ) assetDataVolume="$OPTARG" 
-      ;;
-    c ) couchVolume="$OPTARG" 
-      ;;
-    \? ) usage; exit
-      ;;
+  n)
+    namespace="$OPTARG"
+    ;;
+  r)
+    release_name="$OPTARG"
+    ;;
+  a)
+    assetDataVolume="$OPTARG"
+    ;;
+  c)
+    couchVolume="$OPTARG"
+    ;;
+  \?)
+    usage
+    exit
+    ;;
   esac
 done
 
-cat << EOF | oc apply -f -
+json=$(oc get configmap -n $namespace operator-info -o json 2> /dev/null)
+if [[ $? == 0 ]]; then
+  METADATA_NAME=$(echo $json | tr '\r\n' ' ' | jq -r '.data.METADATA_NAME')
+  METADATA_UID=$(echo $json | tr '\r\n' ' ' | jq -r '.data.METADATA_UID')
+fi
+
+cat <<EOF | oc apply -f -
 apiVersion: integration.ibm.com/v1beta1
 kind: AssetRepository
 metadata:
   name: ${release_name}
   namespace: ${namespace}
+  $(if [[ ! -z ${METADATA_UID} && ! -z ${METADATA_NAME} ]]; then
+  echo "ownerReferences:
+    - apiVersion: integration.ibm.com/v1beta1
+      kind: Demo
+      name: ${METADATA_NAME}
+      uid: ${METADATA_UID}"
+  fi)
 spec:
   license:
     accept: true
+    license: L-RJON-BUVMQX
+  replicas: 1
   storage:
     assetDataVolume:
       class: ${assetDataVolume}
     couchVolume:
       class: ${couchVolume}
-  version: 2020.3.1-0
+  version: 2020.4.1-eus
 EOF
