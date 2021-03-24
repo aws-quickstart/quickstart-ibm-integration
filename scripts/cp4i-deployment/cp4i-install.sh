@@ -339,6 +339,7 @@ metadata:
 spec:
   license:
     accept: true
+    license: L-RJON-BUVMQX
   mqDashboard: true
   replicas: ${platformNavigatorReplicas}
   version: "2020.4.1-eus"
