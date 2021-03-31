@@ -14,7 +14,7 @@
 #
 # PARAMETERS:
 #   -n : <namespace> (string), Defaults to "cp4i"
-#   -r : <replicas> (string), Defaults to "3"
+#   -r : <replicas> (string), Defaults to "2"
 #
 # USAGE:
 #   With default values
@@ -23,31 +23,35 @@
 #   Overriding the namespace and number of replicas
 #     ./release-navigator -n cp4i-prod -r 1
 
-function usage {
-    echo "Usage: $0 -n <namespace> -r <replicas>"
+function usage() {
+  echo "Usage: $0 -n <namespace> -r <replicas>"
 }
 
 namespace="cp4i"
-replicas="3"
+replicas="2"
 
 SCRIPT_DIR="$(dirname $0)"
 echo "Current Dir: $SCRIPT_DIR"
 
 while getopts "n:r:" opt; do
   case ${opt} in
-    n ) namespace="$OPTARG"
-      ;;
-    r ) replicas="$OPTARG"
-      ;;
-    \? ) usage; exit
-      ;;
+  n)
+    namespace="$OPTARG"
+    ;;
+  r)
+    replicas="$OPTARG"
+    ;;
+  \?)
+    usage
+    exit
+    ;;
   esac
 done
 
 # Instantiate Platform Navigator
 echo "INFO: Instantiating Platform Navigator"
 time=0
-while ! cat <<EOF | oc apply -f -
+while ! cat <<EOF | oc apply -f -; do
 apiVersion: integration.ibm.com/v1beta1
 kind: PlatformNavigator
 metadata:
@@ -56,12 +60,12 @@ metadata:
 spec:
   license:
     accept: true
+    license: L-RJON-BUVMQX
   mqDashboard: true
   replicas: ${replicas}
-  version: 2020.3.1
+  version: 2020.4.1-eus
 EOF
 
-do
   if [ $time -gt 10 ]; then
     echo "ERROR: Exiting installation as timeout waiting for PlatformNavigator to be created"
     exit 1
@@ -93,4 +97,4 @@ done
 # Printing the platform navigator object status
 echo "INFO: The platform navigator object status:"
 echo "INFO: $(oc get PlatformNavigator -n ${namespace} ${namespace}-navigator)"
-echo "INFO: PLATFORM NAVIGATOR ROUTE IS: $(oc get route -n ${namespace} ${namespace}-navigator-pn -o json | jq -r .spec.host)"
+echo "INFO: PLATFORM NAVIGATOR ROUTE IS: $(oc get PlatformNavigator -n ${namespace} ${namespace}-navigator -o json | jq -r '.status.endpoints[] | select(.name == "navigator") | .uri')"

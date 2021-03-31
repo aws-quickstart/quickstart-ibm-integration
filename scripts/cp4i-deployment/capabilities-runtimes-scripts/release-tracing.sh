@@ -25,10 +25,8 @@
 #   Overriding the namespace and release-name
 #     ./release-tracing -n cp4i-prod -r prod
 
-
-
-function usage {
-    echo "Usage: $0 -n <namespace> -r <release-name>"
+function usage() {
+  echo "Usage: $0 -n <namespace> -r <release-name>"
 }
 
 namespace="cp4i"
@@ -37,33 +35,39 @@ block_storage="ibmc-block-gold"
 file_storage="ibmc-file-gold-gid"
 production="false"
 
-echo "INFO: Tracing support currently disabled"
-exit 0
-while getopts "n:r:b:d:fp" opt; do
+while getopts "n:r:b:d:f:p" opt; do
   case ${opt} in
-    n ) namespace="$OPTARG"
-      ;;
-    r ) release_name="$OPTARG"
-      ;;
-    b ) block_storage="$OPTARG"
-      ;;
-    f ) file_storage="$OPTARG"
-      ;;
-    p ) production="true"
-      ;;
-    \? ) usage; exit
-      ;;
+  n)
+    namespace="$OPTARG"
+    ;;
+  r)
+    release_name="$OPTARG"
+    ;;
+  b)
+    block_storage="$OPTARG"
+    ;;
+  f)
+    file_storage="$OPTARG"
+    ;;
+  p)
+    production="true"
+    ;;
+  \?)
+    usage
+    exit
+    ;;
   esac
 done
 
+json=$(oc get configmap -n $namespace operator-info -o json 2> /dev/null)
+if [[ $? == 0 ]]; then
+  METADATA_NAME=$(echo $json | tr '\r\n' ' ' | jq -r '.data.METADATA_NAME')
+  METADATA_UID=$(echo $json | tr '\r\n' ' ' | jq -r '.data.METADATA_UID')
+fi
 
-
-
-if [[ "$production" == "true" ]]
-then
-echo "Production Mode Enabled"
-
-cat << EOF | oc apply -f -
+if [[ "$production" == "true" ]]; then
+  echo "Production Mode Enabled"
+  cat <<EOF | oc apply -f -
 apiVersion: integration.ibm.com/v1beta2
 kind: OperationsDashboard
 metadata:
@@ -73,13 +77,20 @@ metadata:
     app.kubernetes.io/instance: ibm-integration-operations-dashboard
     app.kubernetes.io/managed-by: ibm-integration-operations-dashboard
     app.kubernetes.io/name: ibm-integration-operations-dashboard
-
+  $(if [[ ! -z ${METADATA_UID} && ! -z ${METADATA_NAME} ]]; then
+  echo "ownerReferences:
+    - apiVersion: integration.ibm.com/v1beta1
+      kind: Demo
+      name: ${METADATA_NAME}
+      uid: ${METADATA_UID}"
+  fi)
 spec:
   env:
     - name: ENV_ResourceTemplateName
       value: production
   license:
     accept: true
+    license: CP4I
   replicas:
     configDb: 3
     frontend: 3
@@ -96,10 +107,10 @@ spec:
     tracingVolume:
       class: "${block_storage}"
       size: 150Gi
-  version: 2020.3.1-0
+  version: 2020.4.1-0-eus
 EOF
-else 
-cat << EOF | oc apply -f -
+else
+  cat <<EOF | oc apply -f -
 apiVersion: integration.ibm.com/v1beta2
 kind: OperationsDashboard
 metadata:
@@ -109,9 +120,17 @@ metadata:
     app.kubernetes.io/instance: ibm-integration-operations-dashboard
     app.kubernetes.io/managed-by: ibm-integration-operations-dashboard
     app.kubernetes.io/name: ibm-integration-operations-dashboard
+  $(if [[ ! -z ${METADATA_UID} && ! -z ${METADATA_NAME} ]]; then
+  echo "ownerReferences:
+    - apiVersion: integration.ibm.com/v1beta1
+      kind: Demo
+      name: ${METADATA_NAME}
+      uid: ${METADATA_UID}"
+  fi)
 spec:
   license:
     accept: true
+    license: CP4I
   storage:
     configDbVolume:
       class: "${file_storage}"
@@ -119,7 +138,45 @@ spec:
       class: "${file_storage}"
     tracingVolume:
       class: "${block_storage}"
-  version: 2020.3.1-0
+  version: 2020.4.1-0-eus
 EOF
 fi
 
+# If the icp4i-od-store-cred then create a dummy one that the service binding will populate
+oc create secret generic -n ${namespace} icp4i-od-store-cred --from-literal=icp4i-od-cacert.pem="empty" --from-literal=username="empty" --from-literal=password="empty" --from-literal=tracingUrl="empty"
+
+echo "Waiting for Operations Dashboard installation to complete..."
+for i in $(seq 1 40); do
+  STATUS=$(oc get OperationsDashboard -n ${namespace} tracing-demo -o jsonpath='{.status.phase}')
+  if [ "$STATUS" == "Ready" ]; then
+    printf "$tick"
+    echo "Operations Dashboard is ready"
+    break
+  else
+    echo "Waiting for Operations Dashboard install to complete (Attempt $i of 40). Status: $STATUS"
+
+    echo "Checking again in 15 seconds..."
+    sleep 15
+  fi
+done
+
+cat <<EOF | oc apply -f -
+apiVersion: integration.ibm.com/v1beta2
+kind: OperationsDashboardServiceBinding
+metadata:
+  name: ${release_name}
+  namespace: ${namespace}
+  $(if [[ ! -z ${METADATA_UID} && ! -z ${METADATA_NAME} ]]; then
+  echo "ownerReferences:
+    - apiVersion: integration.ibm.com/v1beta1
+      kind: Demo
+      name: ${METADATA_NAME}
+      uid: ${METADATA_UID}"
+  fi)
+spec:
+  odNamespace: "${namespace}"
+  odInstanceName: "${release_name}"
+  sourceInstanceName: "demo-tracing"
+  sourcePodName: "demo-tracing"
+  sourceSecretName: "icp4i-od-store-cred"
+EOF

@@ -23,8 +23,8 @@
 #   Overriding the namespace and release-name
 #     ./release-ace-designer.sh -n cp4i-prod -r prod
 
-function usage {
-    echo "Usage: $0 -n <namespace> -r <designer_release_name>"
+function usage() {
+  echo "Usage: $0 -n <namespace> -r <designer_release_name>"
 }
 
 namespace="cp4i"
@@ -32,39 +32,68 @@ designer_release_name="ace-designer-demo"
 storage="ibmc-block-gold"
 while getopts "n:r:s:" opt; do
   case ${opt} in
-    n ) namespace="$OPTARG"
-      ;;
-    r ) designer_release_name="$OPTARG"
-      ;;
-    s ) storage="$OPTARG"
-     ;;
-    \? ) usage; exit
-      ;;
+  n)
+    namespace="$OPTARG"
+    ;;
+  r)
+    designer_release_name="$OPTARG"
+    ;;
+  s)
+    storage="$OPTARG"
+    ;;
+  \?)
+    usage
+    exit
+    ;;
   esac
 done
 echo "INFO: Release ACE Designer..."
-echo "INFO: Namepace: '$namespace'"
+echo "INFO: Namespace: '$namespace'"
 echo "INFO: Designer Release Name: '$designer_release_name'"
 
-cat << EOF | oc apply -f -
+json=$(oc get configmap -n $namespace operator-info -o json 2> /dev/null)
+if [[ $? == 0 ]]; then
+  METADATA_NAME=$(echo $json | tr '\r\n' ' ' | jq -r '.data.METADATA_NAME')
+  METADATA_UID=$(echo $json | tr '\r\n' ' ' | jq -r '.data.METADATA_UID')
+fi
+
+cat <<EOF | oc apply -f -
 apiVersion: appconnect.ibm.com/v1beta1
 kind: DesignerAuthoring
 metadata:
   name: ${designer_release_name}
   namespace: ${namespace}
+  $(if [[ ! -z ${METADATA_UID} && ! -z ${METADATA_NAME} ]]; then
+  echo "ownerReferences:
+    - apiVersion: integration.ibm.com/v1beta1
+      kind: Demo
+      name: ${METADATA_NAME}
+      uid: ${METADATA_UID}"
+  fi)
 spec:
+  pod:
+    containers:
+      ui:
+        resources:
+          limits:
+            cpu: 400m
+            memory: 400M
+          requests:
+            cpu: 400m
+            memory: 400M
   couchdb:
     storage:
+      class: ${storage}
       size: 10Gi
       type: persistent-claim
-      class: ${storage}
   designerFlowsOperationMode: local
-  license:
-    accept: true
-    license: L-APEH-BPUCJK
-    use: CloudPakForIntegrationNonProduction
-  replicas: 1
-  version: 11.0.0.10
   designerMappingAssist:
     enabled: true
+  license:
+    accept: true
+    license: L-APEH-BTHFYQ
+    use: CloudPakForIntegrationNonProduction
+  replicas: 1
+  useCommonServices: true
+  version: 11.0.0.10-r3-eus
 EOF
