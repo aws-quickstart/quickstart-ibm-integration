@@ -71,6 +71,7 @@ Metadata:
           - ES
           - GW
           - HST
+          - HSTKey
       - Label:
           default: AWS Quick Start configuration
         Parameters:
@@ -154,6 +155,8 @@ Metadata:
         default: Gateway
       HST:
         default: High Speed Transfers
+      HSTKey:
+        default: High Speed Transfers License Key  
       QSS3BucketName:
         default: Quick Start S3 bucket name
       QSS3BucketRegion:
@@ -404,6 +407,11 @@ Parameters:
       - "False"
       - "True"
     Default: "False"
+  HSTKey:
+    Description: >-
+       Your Aspera License Key (e.g., s3://my-bucket/path/to/AsperaKey).
+    Type: String
+    Default: "False"  
   QSS3BucketName:
     AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
     ConstraintDescription: The Quick Start bucket name can include numbers, lowercase

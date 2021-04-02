@@ -358,6 +358,7 @@ class CP4IntegrationInstall(object):
         self.updateTemplateFile(installConfigFile,'${subnet-1}',self.PrivateSubnet1ID)
         self.updateTemplateFile(installConfigFile,'${subnet-2}',self.PublicSubnet1ID)
         self.updateTemplateFile(installConfigFile,'${pullSecret}',self.readFileContent(self.pullSecret))
+        self.updateTemplateFile(installConfigFile,'${asperaKey}',self.readFileContent(self.asperaKey))
         self.updateTemplateFile(installConfigFile,'${sshKey}',self.readFileContent("/root/.ssh/id_rsa.pub"))
         self.updateTemplateFile(installConfigFile,'${clustername}',self.ClusterName)
         # self.updateTemplateFile(installConfigFile, '${FIPS}',self.EnableFips)
@@ -619,6 +620,15 @@ class CP4IntegrationInstall(object):
                 TR.info(methodName,"s3 cp cmd %s"%s3_cp_cmd)
                 call(s3_cp_cmd, shell=True,stdout=icp4iInstallLogFile)
                 self.getSecret(icp4iInstallLogFile)
+
+                TR.info(methodName,"HSTKey %s" %self.HSTKey)
+                AsperaKey = self.HSTKey.split('/',1)
+                TR.info(methodName,"Aspera License Key  %s" %AsperaKey)  
+                self.asperaKey = "/ibm/aspera-key"
+                s3_cp_cmd = "aws s3 cp "+self.HSTKey+" "+self.asperaKey
+                TR.info(methodName,"s3 cp cmd %s"%s3_cp_cmd)
+                call(s3_cp_cmd, shell=True,stdout=icp4iInstallLogFile)
+                self.getSecret(icp4iInstallLogFile)
                 
                 ocpstart = Utilities.currentTimeMillis()
                 self.installOCP(icp4iInstallLogFile)
@@ -634,11 +644,11 @@ class CP4IntegrationInstall(object):
                 if(self.password=="NotProvided"):
                     install_cp4i = ("sudo ./cp4i-deployment/cp4i-install.sh  -n " +  self.Namespace + " -k " + self.apiKey +
                                 " -1 " + self.APILM + " -2 " + self.AIDB + " -3 " + self.AIDE + " -4 " + self.OD + " -5 " + self.AR +
-                                " -6 " + self.MQ + " -7 " + self.ES + " -8 " + self.GW + " -9 " + self.HST + " | tee -a cp4i-logs.txt")
+                                " -6 " + self.MQ + " -7 " + self.ES + " -8 " + self.GW + " -9 " + self.HST + " -a " + self.asperaKey + " | tee -a cp4i-logs.txt")
                 else:
                     install_cp4i = ("sudo ./cp4i-deployment/cp4i-install.sh  -n " +  self.Namespace + " -k " + self.apiKey +
                                     " -1 " + self.APILM + " -2 " + self.AIDB + " -3 " + self.AIDE + " -4 " + self.OD + " -5 " + self.AR +
-                                    " -6 " + self.MQ + " -7 " + self.ES + " -8 " + self.GW + " -9 " + self.HST + " -p " + self.password + " | tee -a cp4i-logs.txt")
+                                    " -6 " + self.MQ + " -7 " + self.ES + " -8 " + self.GW + " -9 " + self.HST + " -a " + self.asperaKey + " -p " + self.password + " | tee -a cp4i-logs.txt")
                 
                 try:
                     process = Popen(install_cp4i,shell=True,stdout=icp4iInstallLogFile,stderr=icp4iInstallLogFile,close_fds=True)
