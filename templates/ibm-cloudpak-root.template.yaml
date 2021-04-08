@@ -477,7 +477,6 @@ Resources:
         PublicSubnet3CIDR: !Ref 'PublicSubnet3CIDR'
         PublicSubnetTag2: !Sub "kubernetes.io/cluster/${AWS::StackName}-${AWS::Region}=owned"
         PublicSubnetTag3: "kubernetes.io/role/elb="
-        KeyPairName: !Ref 'KeyPairName'
 
   CloudPakIntegrationStack:
     Type: AWS::CloudFormation::Stack
