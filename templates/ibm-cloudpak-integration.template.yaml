@@ -808,7 +808,7 @@ Resources:
                     ssm = boto3.client('ssm',region_name=os.environ['Region'])
                     instanceID = os.environ['BootNode']
                     stackname = os.environ['StackName']
-                    print instanceID
+                    print(instanceID)
                     response = ssm.send_command(Targets=[{"Key":"instanceids","Values":[instanceID]}],
                             DocumentName="AWS-RunShellScript",
                             Parameters={"commands":["/ibm/destroy.sh %s" %(stackname)],
@@ -845,7 +845,7 @@ Resources:
           StackName: !Ref AWS::StackName
       Handler: index.handler
       Role: !GetAtt 'LambdaExecutionRole.Arn'
-      Runtime: python2.7
+      Runtime: python3.7
       Timeout: 600
   
   Cleanup :
