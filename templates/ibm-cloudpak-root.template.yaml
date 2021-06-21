@@ -304,7 +304,7 @@ Parameters:
     Description: Your Red Hat Network (RHN) pull secret (e.g., s3://my-bucket/path/to/pull-secret).
     Type: String
   CP4IVersion:
-    Description: The version of IBM Cloud Pak for Integration to be deployed. Currently only 2020.3 is supported.
+    Description: The version of IBM Cloud Pak for Integration to be deployed. Currently only 2020.4 is supported.
     Type: String
     AllowedValues:
       - 2020.4
