@@ -35,6 +35,8 @@ tests:
       MQ: 'True'
       ES: 'True'
       GW: 'True'
+      HST: 'True'
+      HSTKey: override
       QSS3BucketName: $[taskcat_autobucket]
       QSS3BucketRegion: $[taskcat_current_region]
       QSS3KeyPrefix: quickstart-ibm-integration/
